@@ -5,6 +5,9 @@ const API_URL_POPULAR =
 const API_URL_SEARCH =
   'https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=';
 
+const API_URL_MOVIE_DETAILS = 
+  'https://kinopoiskapiunofficial.tech/api/v2.2/films/';
+
 getMovies(API_URL_POPULAR);
 
 // получаем список фильмов
@@ -58,6 +61,8 @@ function showMovies(data) {
         <div class="movie__average movie__average--${getClassByRate(movie.rating)}">${movie.rating}</div>
       </div>
     `;
+    // открываем модальное окно по клику
+    movieEl.addEventListener('click', () => openModal(movie.filmId))
     moviesEl.appendChild(movieEl);
   })
 }
@@ -79,3 +84,66 @@ form.addEventListener('submit', (e) => {
     search.value = '';
   }
 })
+
+// отлавливаем элемент modal
+
+const modalEl = document.querySelector(".modal");
+
+async function openModal(id) {
+  // получаем через API описание фильма
+  const resp = await fetch(API_URL_MOVIE_DETAILS + id, {
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-KEY": API_KEY,
+    },
+  });
+  
+  const respData = await resp.json();
+
+  modalEl.classList.add('modal--show');
+  document.body.classList.add('stop--scrolling');
+
+modalEl.innerHTML = `
+  <div class="modal__card">
+  <img class="modal__movie-backdrop" src="${respData.posterUrl}" alt="modal">
+  <h2>
+    <span class="modal__movie-title">${respData.nameRu}</span>
+    <span class="modal__movie-release-year">${respData.year}</span>
+  </h2>
+  <ul class="modal__movie-info">
+    <div class="loader"></div>
+    <li class="modal__movie-genre">жанр: ${respData.genres.map(
+      (genre) => `${genre.genre} `)}</li>
+    ${respData.filmLength ? `<li class="modal__movie-runtime">время - ${respData.filmLength} минут</li>` : ''}
+    <li>сайт: <a class="modal__movie-site" href="${respData.webUrl}">${respData.webUrl}</a></li>
+    <li class="modal__movie-overview">описание - ${respData.description}</li>
+  </ul>
+  <button class="modal__button-close" type="button">закрыть</button>
+  </div>
+`
+  const btnClose = document.querySelector('.modal__button-close')
+  btnClose.addEventListener('click', () => closeModal())
+};
+
+
+// закрываем модальное окно по нажатию на кнопку
+function closeModal() {
+  modalEl.classList.remove('modal--show');
+  document.body.classList.remove('stop--scrolling');
+}
+
+// закрываем модальное окно по нажатию на свободное место
+window.addEventListener('click', (e) => {
+  if (e.target === modalEl) {
+    closeModal();
+  }
+})
+
+// закрываем модальное окно по нажатию на ESC
+window.addEventListener('keydown', (e) => {
+  if (e.keyCode === 27) {
+    closeModal();
+  }
+})
+
+
